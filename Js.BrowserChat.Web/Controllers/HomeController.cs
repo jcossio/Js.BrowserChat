@@ -6,11 +6,15 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Js.BrowserChat.Web.Models;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
 
 namespace Js.BrowserChat.Web.Controllers
 {
     public class HomeController : Controller
     {
+        // IdentityUser comes from Microsoft.Extensions.Identity.Stores
         private readonly UserManager<IdentityUser> userManager;
 
         /// <summary>
@@ -28,6 +32,7 @@ namespace Js.BrowserChat.Web.Controllers
             return View();
         }
 
+        [Authorize]
         public IActionResult About()
         {
             ViewData["Message"] = "Your application description page.";
@@ -107,8 +112,30 @@ namespace Js.BrowserChat.Web.Controllers
         /// <param name="model">Login model</param>
         /// <returns>View</returns>
         [HttpPost]
-        public IActionResult Login(LoginModel model)
+        public async Task<IActionResult> Login(LoginModel model)
         {
+            if (ModelState.IsValid)
+            {
+                // Check if user exists
+                var user = await userManager.FindByNameAsync(model.UserName);
+                // Check the password
+                if (user != null && await userManager.CheckPasswordAsync(user, model.Password))
+                {
+                    // Create a new claims identity using our authentication schema (to say this authority issued this identity)
+                    var identity = new ClaimsIdentity("cookies");
+                    identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, user.Id));
+                    identity.AddClaim(new Claim(ClaimTypes.Name, user.UserName));
+
+                    await HttpContext.SignInAsync("cookies", new ClaimsPrincipal(identity));
+
+                    // Redirect the user back to the homepage
+                    return RedirectToAction("Index");
+                }
+
+                // Return something generic
+                ModelState.AddModelError("", "Invalid user name or password.");
+
+            }
             return View();
         }
 
