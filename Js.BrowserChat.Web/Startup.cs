@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpsPolicy;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -33,6 +34,12 @@ namespace Js.BrowserChat.Web
 
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+
+            // Register Identity via nuget Microsoft.Extensions.Identity.Core and say we are going to use IdentityUser as the user to use.
+            //services.AddIdentityCore<IdentityUser>(options => { });
+
+            // Say what user to use and what user store implementation
+            //services.AddScoped<IUserStore<IdentityUser>, PluralsightUserStore>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
