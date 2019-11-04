@@ -11,10 +11,12 @@
                     <div class="panel-body">@chatEntry.Text</div>
                 </div>
             }
+            <!--Used to scroll to the last element-->
+            <div id="LastElement"></div>
         </div>
         <form asp-action="Chat" method="post" class="form-horizontal">
             <div class="input-group">
-                <input asp-for="ChatText" class="form-control" placeholder="Write something here..." aria-label="Recipient's username" aria-describedby="SendMessageButton" />
+                <input autocomplete="off" asp-for="ChatText" class="form-control" placeholder="Write something here..." aria-label="Recipient's username" aria-describedby="SendMessageButton" />
                 <span class="input-group-btn">
                     <button type="submit" class="btn btn-success" id="SendMessageButton">Send</button>
                 </span>
@@ -23,3 +25,13 @@
         </form>
     </div>
 </div>
+
+@section scripts {
+<script type="text/javascript">
+    // Focus on the last element in the list.
+    $(document).ready(function(){
+        document.getElementById("LastElement").scrollIntoView();
+    });
+</script>
+
+}
