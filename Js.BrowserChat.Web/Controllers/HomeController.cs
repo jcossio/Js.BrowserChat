@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http;
 
 namespace Js.BrowserChat.Web.Controllers
 {
@@ -75,7 +76,7 @@ namespace Js.BrowserChat.Web.Controllers
                         UserName = model.UserName
                     };
                     // Create the user
-                    var result = await userManager.CreateAsync(user, model.Password);
+                    _ = await userManager.CreateAsync(user, model.Password);
                 }
 
                 return View("Success");
@@ -126,20 +127,51 @@ namespace Js.BrowserChat.Web.Controllers
             return View();
         }
 
+        /// <summary>
+        /// View the chat page
+        /// </summary>
+        /// <returns>Available chat entries</returns>
         [HttpGet]
         public IActionResult Chat()
         {
-            var chatModel = new ChatModel
+            var chatModel = new ChatModel();
+
+            // Check if we have the ChatEntries queue initialized
+            //var chatEntries = HttpContext.Session.Get<Queue<ChatEntry>>("ChatEntriesQueue");
+
+            var chatEntriesQueue = new Queue<ChatEntry>();
+            chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = DateTime.Now.AddSeconds(-9), Text = "Hello", WhoPosted = "JCossio" });
+            chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = DateTime.Now.AddSeconds(-8), Text = "Hi", WhoPosted = "JohnDoe" });
+            chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = DateTime.Now.AddSeconds(-7), Text = "What's up", WhoPosted = "JCossio" });
+            chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = DateTime.Now.AddSeconds(-6), Text = "Nothing much", WhoPosted = "JohnDoe" });
+            chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = DateTime.Now.AddSeconds(-5), Text = "Is the meeting cancelled?", WhoPosted = "JCossio" });
+            chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = DateTime.Now.AddSeconds(-4), Text = "Yes, rescheduled", WhoPosted = "JohnDoe" });
+            chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = DateTime.Now.AddSeconds(-3), Text = "Thanks for the info", WhoPosted = "JCossio" });
+            chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = DateTime.Now.AddSeconds(-2), Text = "No Problem", WhoPosted = "JohnDoe" });
+            chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = DateTime.Now.AddSeconds(-1), Text = ":)", WhoPosted = "JCossio" });
+
+            // Check if we have something in the queue
+            if (chatEntriesQueue != null)
             {
-                ChatEntries = new List<ChatEntry> {
-                    new ChatEntry { DatePosted = DateTime.Now.AddSeconds(-3), Text = "Hello", WhoPosted = "JCossio" },
-                    new ChatEntry { DatePosted = DateTime.Now.AddSeconds(-2), Text = "Hi", WhoPosted = "JohnDoe" },
-                    new ChatEntry { DatePosted = DateTime.Now.AddSeconds(-1), Text = "How are things ?", WhoPosted = "JCossio" },
-                }
-            };
+                // Take the last 50 entries
+                chatModel.ChatEntries = chatEntriesQueue.TakeLast(5).ToList();
+            }
 
             return View(chatModel);
         }
 
+        /// <summary>
+        /// Chat message post
+        /// </summary>
+        /// <param name="model">Chat info to post</param>
+        /// <returns>View</returns>
+        [HttpPost]
+        public IActionResult Chat(ChatModel model)
+        {
+            if (!ModelState.IsValid)
+                return View();
+
+            return View();
+        }
     }
 }

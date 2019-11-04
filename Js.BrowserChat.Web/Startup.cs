@@ -38,6 +38,9 @@ namespace Js.BrowserChat.Web
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
 
+            // Enabled by Microsoft.AspNetCore.Session
+            services.AddSession();
+
             // Register the DbContext defined in Microsoft.AspNetCore.Identity.EntityFrameworkCore nuget package
             // Use helper method from EntityFramework to add the db context as a scoped registration
             // When adding Microsoft.EntityFrameworkCore.SqlServer we get the option to specify Sqlserver
@@ -86,6 +89,7 @@ namespace Js.BrowserChat.Web
             app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseCookiePolicy();
+            app.UseSession();
 
             app.UseMvc(routes =>
             {
