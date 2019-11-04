@@ -129,7 +129,16 @@ namespace Js.BrowserChat.Web.Controllers
         [HttpGet]
         public IActionResult Chat()
         {
-            return View();
+            var chatModel = new ChatModel
+            {
+                ChatEntries = new List<ChatEntry> {
+                    new ChatEntry { DatePosted = DateTime.Now.AddSeconds(-3), Text = "Hello", WhoPosted = "JCossio" },
+                    new ChatEntry { DatePosted = DateTime.Now.AddSeconds(-2), Text = "Hi", WhoPosted = "JohnDoe" },
+                    new ChatEntry { DatePosted = DateTime.Now.AddSeconds(-1), Text = "How are things ?", WhoPosted = "JCossio" },
+                }
+            };
+
+            return View(chatModel);
         }
 
     }

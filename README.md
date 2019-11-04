@@ -12,6 +12,6 @@ For the identity support there needs to be a database update issuing a CLI comma
 
 `dotnet ef database update`
 
-This will executre the stored migrations to create the required tables to support the identity process.
+This will execute the stored migrations to create the required tables to support the identity process.
 
 In order for the user to join the chat, he/she needs to register or login to get access to the chat page.
