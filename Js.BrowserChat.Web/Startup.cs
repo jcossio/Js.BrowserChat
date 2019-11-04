@@ -50,7 +50,13 @@ namespace Js.BrowserChat.Web
             services.AddDbContext<IdentityDbContext>(opt => opt.UseSqlServer(connectionString, sql => sql.MigrationsAssembly(migrationAssembly)));
 
             // Register Identity via nuget Microsoft.Extensions.Identity.Core and say we are going to use IdentityUser as the user to use.
-            services.AddIdentityCore<IdentityUser>(options => { });
+            // Also be more lenient on the password requirements for the sake of a simpler demo
+            services.AddIdentityCore<IdentityUser>(options => {
+                options.Password.RequireDigit = false;
+                options.Password.RequireLowercase = false;
+                options.Password.RequireUppercase= false;
+                options.Password.RequireNonAlphanumeric = false;
+            });
 
             // Say what user to use and what user store in this case UserOnlyStore and IdentityDbContext defined in Microsoft.AspNetCore.Identity.EntityFrameworkCore nuget package
             services.AddScoped<IUserStore<IdentityUser>, UserOnlyStore<IdentityUser, IdentityDbContext>>();
