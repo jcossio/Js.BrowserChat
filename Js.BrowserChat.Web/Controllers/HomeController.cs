@@ -21,12 +21,11 @@ namespace Js.BrowserChat.Web.Controllers
         /// Constructor used to inject the UserManager
         /// </summary>
         /// <param name="userManager">Identity user manager</param>
-        /*
         public HomeController(UserManager<IdentityUser> userManager)
         {
             this.userManager = userManager;
         }
-        */
+
         public IActionResult Index()
         {
             return View();
@@ -37,18 +36,6 @@ namespace Js.BrowserChat.Web.Controllers
         {
             ViewData["Message"] = "Your application description page.";
 
-            return View();
-        }
-
-        public IActionResult Contact()
-        {
-            ViewData["Message"] = "Your contact page.";
-
-            return View();
-        }
-
-        public IActionResult Privacy()
-        {
             return View();
         }
 
@@ -72,7 +59,7 @@ namespace Js.BrowserChat.Web.Controllers
         /// Registration posting
         /// </summary>
         /// <param name="model">Data for registration</param>
-        /// <returns>Success view</returns>
+        /// <returns>Success view if successful</returns>
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(RegisterModel model)
@@ -110,7 +97,7 @@ namespace Js.BrowserChat.Web.Controllers
         /// Login to the application
         /// </summary>
         /// <param name="model">Login model</param>
-        /// <returns>View</returns>
+        /// <returns>Redirect to home if successful</returns>
         [HttpPost]
         public async Task<IActionResult> Login(LoginModel model)
         {

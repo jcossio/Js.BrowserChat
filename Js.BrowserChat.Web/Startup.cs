@@ -1,13 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -35,11 +38,22 @@ namespace Js.BrowserChat.Web
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
 
+            // Register the DbContext defined in Microsoft.AspNetCore.Identity.EntityFrameworkCore nuget package
+            // Use helper method from EntityFramework to add the db context as a scoped registration
+            // When adding Microsoft.EntityFrameworkCore.SqlServer we get the option to specify Sqlserver
+            var connectionString = @"Data Source=(LocalDb)\MSSQLLocalDB;Database=Js.BrowserChat.IdentityUser;trusted_connection=yes;";
+            
+            // We need to set this assembly name here in order to not fail the CLI migrations command: dotnet ef migrations add Initial
+            // So we can have an initial migration to create the database as we need it.
+            // After the migration is created we can execute a dotnet ef database update
+            var migrationAssembly = typeof(Startup).GetTypeInfo().Assembly.GetName().Name;
+            services.AddDbContext<IdentityDbContext>(opt => opt.UseSqlServer(connectionString, sql => sql.MigrationsAssembly(migrationAssembly)));
+
             // Register Identity via nuget Microsoft.Extensions.Identity.Core and say we are going to use IdentityUser as the user to use.
             services.AddIdentityCore<IdentityUser>(options => { });
 
-            // Say what user to use and what user store implementation
-            services.AddScoped<IUserStore<IdentityUser>, CustomIdentityUserStore>();
+            // Say what user to use and what user store in this case UserOnlyStore and IdentityDbContext defined in Microsoft.AspNetCore.Identity.EntityFrameworkCore nuget package
+            services.AddScoped<IUserStore<IdentityUser>, UserOnlyStore<IdentityUser, IdentityDbContext>>();
 
             // So we install the following nuget: Microsoft.AspNetCore.Authentication.Cookies
             // Saying what scheme to use by default and what endpoint to use when login is challenged by one of the app actions.
