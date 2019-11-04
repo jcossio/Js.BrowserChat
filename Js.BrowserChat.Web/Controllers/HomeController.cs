@@ -126,5 +126,11 @@ namespace Js.BrowserChat.Web.Controllers
             return View();
         }
 
+        [HttpGet]
+        public IActionResult Chat()
+        {
+            return View();
+        }
+
     }
 }

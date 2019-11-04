@@ -1,0 +1,19 @@
+﻿@model ChatModel
+
+<div class="row">
+    <div class="col-xs-8 col-xs-offset-2">
+        <form asp-action="Chat" method="post" class="form-horizontal">
+            <div class="form-group">
+                <label for="MessagesTextArea">Messages</label>
+                <textarea readonly class="form-control" id="MessagesTextArea" rows="10"></textarea>
+            </div>
+            <div class="input-group">
+                <input asp-for="ChatText" class="form-control" placeholder="Write something here..." aria-label="Recipient's username" aria-describedby="SendMessageButton" />
+                <span class="input-group-btn">
+                    <button type="submit" class="btn btn-success" id="SendMessageButton">Send</button>
+                </span>
+            </div>
+            <div asp-validation-summary="All"></div>
+        </form>
+    </div>
+</div>
