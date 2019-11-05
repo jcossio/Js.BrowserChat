@@ -23,3 +23,12 @@ In order for the user to join the chat, he/she needs to register or login to get
 ### RabbitMQ
 
 There is also a dependency to RabbitMQ to be installed on the local machine. Otherwise, the rabbitMQ parameter would need to be modified.
+
+## Usage
+
+* Run the sample publisher console app to add dummy data to the system
+* Run the Bot console app to be sensing for stock commands and to query the web for the stock price
+* Run the Web app to register, login on internal DB using identity
+* Chat messages are not automatically placed for now. You need to refresh the page.
+* App still has issues with Rabbit MQ.
+* Pendind and part of the plan was the use of SignalR.

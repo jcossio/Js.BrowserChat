@@ -33,6 +33,14 @@ namespace Js.BrowserChat.Web.Controllers
         public HomeController(UserManager<IdentityUser> userManager)
         {
             this.userManager = userManager;
+
+            // Initialize connection to rabbitmq
+            // Connnect to a localhost instance of rabbit mq with default credentials.
+            _factory = new ConnectionFactory { HostName = "localhost", UserName = "guest", Password = "guest" };
+            _connection = _factory.CreateConnection();
+            _model = _connection.CreateModel();
+            // Say we want to have a fanout exchange 
+            _model.ExchangeDeclare(ExchangeName, ExchangeType.Fanout, durable: true);
         }
 
         public IActionResult Index()
@@ -136,12 +144,6 @@ namespace Js.BrowserChat.Web.Controllers
         /// <param name="userName">Our username</param>
         private void CreateUserQueue(string userName)
         {
-            // Connnect to a localhost instance of rabbit mq with default credentials.
-            _factory = new ConnectionFactory { HostName = "localhost", UserName = "guest", Password = "guest" };
-            _connection = _factory.CreateConnection();
-            _model = _connection.CreateModel();
-            // Say we want to have a fanout exchange 
-            _model.ExchangeDeclare(ExchangeName, ExchangeType.Fanout, durable: true);
             // Declare a user queue to see the messages
             _model.QueueDeclare($"Chat_{userName}_Queue", durable: true, exclusive: false, autoDelete: false);
             // Bind to our exchange
@@ -164,41 +166,32 @@ namespace Js.BrowserChat.Web.Controllers
             {
                 // Initialize the queue
                 chatEntriesQueue = new Queue<ChatEntry>();
-                chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = DateTime.UtcNow.AddSeconds(-9), Text = "Hello", WhoPosted = "JCossio" });
-                chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = DateTime.UtcNow.AddSeconds(-8), Text = "Hi", WhoPosted = "JohnDoe" });
-                chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = DateTime.UtcNow.AddSeconds(-7), Text = "What's up", WhoPosted = "JCossio" });
-                chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = DateTime.UtcNow.AddSeconds(-6), Text = "Nothing much", WhoPosted = "JohnDoe" });
-                chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = DateTime.UtcNow.AddSeconds(-5), Text = "Is the meeting cancelled?", WhoPosted = "JCossio" });
-                chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = DateTime.UtcNow.AddSeconds(-4), Text = "Yes, rescheduled", WhoPosted = "JohnDoe" });
-                chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = DateTime.UtcNow.AddSeconds(-3), Text = "Thanks for the info", WhoPosted = "JCossio" });
-                chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = DateTime.UtcNow.AddSeconds(-2), Text = "No Problem", WhoPosted = "JohnDoe" });
-                chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = DateTime.UtcNow.AddSeconds(-1), Text = ":)", WhoPosted = "JCossio" });
             }
 
-            // Connect to our queue and retrieve all that is there
+            // Connect to our queue and retrieve messages
+            _model.BasicQos(prefetchSize: 0, prefetchCount: 10, global: false);
             var queueName = $"Chat_{User.Identity.Name}_Queue";
             var _consumer = new QueueingBasicConsumer(_model);
-            _model.BasicConsume(queue: queueName, autoAck: true, _consumer);
+            _model.BasicConsume(queue: queueName, autoAck: false, _consumer);
             while (true)
             {
-                var item = _consumer.Queue.Dequeue();
-                if (item == null)
+                if (!_consumer.Queue.Dequeue(millisecondsTimeout: 100, out var result))
                     break;
-                var message = (ChatEntry)item.Body.DeSerialize(typeof(ChatEntry));
-                chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = message.DatePosted, Text = message.Text, WhoPosted = message.WhoPosted });
+                var message = (ChatEntry)result.Body.DeSerialize(typeof(ChatEntry));
+                // Check for stock commands
+                if (!message.Text.StartsWith("/stock=",StringComparison.InvariantCultureIgnoreCase))
+                    chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = message.DatePosted, Text = message.Text, WhoPosted = message.WhoPosted });
+                // Acknowledge
+                _model.BasicAck(result.DeliveryTag, false);
             }
 
-            // Check if we have something in the queue
-            if (chatEntriesQueue != null)
-            {
-                // Take the last 50 entries
-                chatModel.ChatEntries = chatEntriesQueue.TakeLast(5).ToList();
-                // Remove old ones
-                while(chatEntriesQueue.Count > 50)
-                {
-                    chatEntriesQueue.Dequeue();
-                }
-            }
+            // Take the last 50 entries of the local queue
+            chatModel.ChatEntries = chatEntriesQueue.TakeLast(50).ToList();
+            // Remove old ones
+            while(chatEntriesQueue.Count > 50)
+                chatEntriesQueue.Dequeue();
+            // Add the local queue back to the session
+            HttpContext.Session.Set<Queue<ChatEntry>>("ChatEntriesQueue", chatEntriesQueue);
 
             return View(chatModel);
         }
@@ -218,35 +211,41 @@ namespace Js.BrowserChat.Web.Controllers
             var chatEntriesQueue = HttpContext.Session.Get<Queue<ChatEntry>>("ChatEntriesQueue");
             if (chatEntriesQueue == null)
             {
-                // Initialize the queue with dummy data
+                // Initialize the queue 
                 chatEntriesQueue = new Queue<ChatEntry>();
-                chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = DateTime.UtcNow.AddSeconds(-9), Text = "Hello", WhoPosted = "JCossio" });
-                chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = DateTime.UtcNow.AddSeconds(-8), Text = "Hi", WhoPosted = "JohnDoe" });
-                chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = DateTime.UtcNow.AddSeconds(-7), Text = "What's up", WhoPosted = "JCossio" });
-                chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = DateTime.UtcNow.AddSeconds(-6), Text = "Nothing much", WhoPosted = "JohnDoe" });
-                chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = DateTime.UtcNow.AddSeconds(-5), Text = "Is the meeting cancelled?", WhoPosted = "JCossio" });
-                chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = DateTime.UtcNow.AddSeconds(-4), Text = "Yes, rescheduled", WhoPosted = "JohnDoe" });
-                chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = DateTime.UtcNow.AddSeconds(-3), Text = "Thanks for the info", WhoPosted = "JCossio" });
-                chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = DateTime.UtcNow.AddSeconds(-2), Text = "No Problem", WhoPosted = "JohnDoe" });
-                chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = DateTime.UtcNow.AddSeconds(-1), Text = ":)", WhoPosted = "JCossio" });
             }
 
             if (ModelState.IsValid)
             {
-                // Add the entry to the list!
-                chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = DateTime.UtcNow, Text = model.ChatText, WhoPosted = User.Identity.Name });
-                // Add the queue back to the session
-                HttpContext.Session.Set<Queue<ChatEntry>>("ChatEntriesQueue", chatEntriesQueue);
-                // Clear the chat
-                model.ChatText = "";
+                // Add the entry to the queue
+                var newChat = new ChatEntry { DatePosted = DateTime.UtcNow, Text = model.ChatText, WhoPosted = User.Identity.Name };
+                _model.BasicPublish(ExchangeName, "chat", null, newChat.Serialize());
             }
 
-            // Check if we have something in the queue
-            if (chatEntriesQueue != null)
+            // Connect to our rabbit queue and retrieve messages
+            _model.BasicQos(prefetchSize: 0, prefetchCount: 10, global: false);
+            var queueName = $"Chat_{User.Identity.Name}_Queue";
+            var _consumer = new QueueingBasicConsumer(_model);
+            _model.BasicConsume(queue: queueName, autoAck: false, _consumer);
+            while (true)
             {
-                // Take the last 50 entries
-                outModel.ChatEntries = chatEntriesQueue.TakeLast(5).ToList();
+                if (!_consumer.Queue.Dequeue(millisecondsTimeout: 100, out var result))
+                    break;
+                var message = (ChatEntry)result.Body.DeSerialize(typeof(ChatEntry));
+                // Check for stock commands
+                if (!message.Text.StartsWith("/stock=", StringComparison.InvariantCultureIgnoreCase))
+                    chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = message.DatePosted, Text = message.Text, WhoPosted = message.WhoPosted });
+                // Acknowledge
+                _model.BasicAck(result.DeliveryTag, false);
             }
+
+            // Take the last 50 entries of the local queue
+            outModel.ChatEntries = chatEntriesQueue.TakeLast(50).ToList();
+            // Remove old ones
+            while (chatEntriesQueue.Count > 50)
+                chatEntriesQueue.Dequeue();
+            // Add the local queue back to the session
+            HttpContext.Session.Set<Queue<ChatEntry>>("ChatEntriesQueue", chatEntriesQueue);
 
             return View(outModel);
         }
