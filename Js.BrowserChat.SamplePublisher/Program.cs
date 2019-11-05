@@ -28,6 +28,7 @@ namespace Js.BrowserChat.SamplePublisher
             // Bot commands
             var msg11 = new ChatEntry { Text = "/stock=AAPL.US", WhoPosted = "mJackson", DatePosted = DateTime.UtcNow };
             var msg12 = new ChatEntry { Text = "/stock=AAPL.USX", WhoPosted = "mJackson", DatePosted = DateTime.UtcNow };
+            var msg13 = new ChatEntry { Text = "/stock=NVDA.US", WhoPosted = "mJackson", DatePosted = DateTime.UtcNow };
 
             CreateConnection();
 
@@ -44,6 +45,7 @@ namespace Js.BrowserChat.SamplePublisher
 
             SendMessage(msg11);
             SendMessage(msg12);
+            SendMessage(msg13);
 
         }
 

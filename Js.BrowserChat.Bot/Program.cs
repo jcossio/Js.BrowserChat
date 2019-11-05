@@ -18,7 +18,6 @@ namespace Js.BrowserChat.Bot
         private const string BotQueueName = "Chat_Bot_Queue";
         private const string BotName = "QouteBot";
         private static string stockPrefix = "/stock=";
-        private static string stockUri = "​https://stooq.com/q/l/?s={0}&f=sd2t2ohlcv&h&e=csv​";
 
         private static readonly HttpClient client = new HttpClient();
 
@@ -57,37 +56,45 @@ namespace Js.BrowserChat.Bot
         /// <param name="channel">Channel</param>
         private static async Task ProcessStockRequest(string message, IModel channel)
         {
+            // Remove prefix
             var stockCode = message.Substring(stockPrefix.Length);
 
             if (!string.IsNullOrEmpty(stockCode))
             {
-                // Process
-                var processedUri = string.Format(stockUri, stockCode);
-                var response = await client.GetStringAsync(processedUri);
-                if (!string.IsNullOrEmpty(response))
+                // Query 
+                try
                 {
-                    // Format (Valid stock quote):
-                    // Symbol,Date,Time,Open,High,Low,Close,Volume
-                    // AAPL.US,2019-11-04,22:00:11,257.33,257.845,255.38,257.5,25568075
-                    // Symbol ,Date      ,Time    ,Open  ,High   ,Low   ,Close,Volume
-                    //
-                    // Format (Stock quote not found):
-                    // Symbol,Date,Time,Open,High,Low,Close,Volume
-                    // AAPL.USX,N/D,N/D,N/D,N/D,N/D,N/D,N/D
-
-                    // Strip header
-                    response = response.Substring(response.IndexOf('\n'));
-                    // Split
-                    string[] symbolDataArray = response.Split(',', StringSplitOptions.RemoveEmptyEntries);
-                    // Check if valid info
-                    if (symbolDataArray.Length > 6 && !symbolDataArray[6].Trim().Equals("N/D", StringComparison.InvariantCultureIgnoreCase))
+                    //client.BaseAddress = new Uri(stockBaseAddress);
+                    var response = await client.GetStringAsync(@"https://stooq.com/q/l/?s=" + stockCode + @"&f=sd2t2ohlcv&h&e=csv");
+                    // Process
+                    if (!string.IsNullOrEmpty(response))
                     {
-                        // We are good to go
-                        PostStockQuoteAsBot(channel, symbolDataArray[0], symbolDataArray[6]);
+                        // Format (Valid stock quote):
+                        // Symbol,Date,Time,Open,High,Low,Close,Volume
+                        // AAPL.US,2019-11-04,22:00:11,257.33,257.845,255.38,257.5,25568075
+                        // Symbol ,Date      ,Time    ,Open  ,High   ,Low   ,Close,Volume
+                        //
+                        // Format (Stock quote not found):
+                        // Symbol,Date,Time,Open,High,Low,Close,Volume
+                        // AAPL.USX,N/D,N/D,N/D,N/D,N/D,N/D,N/D
+
+                        // Strip header from the response
+                        response = response.Substring(response.IndexOf('\n') + 1);
+                        // Split
+                        string[] symbolDataArray = response.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                        // Check if valid info
+                        if (symbolDataArray.Length > 6 && !symbolDataArray[6].Trim().Equals("N/D", StringComparison.InvariantCultureIgnoreCase))
+                        {
+                            // We are good to go to post the quote
+                            PostStockQuoteAsBot(channel, symbolDataArray[0], symbolDataArray[6]);
+                        }
                     }
                 }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"The bot had an issue getting the quote: {ex.Message}");
+                }
             }
-
             await Task.CompletedTask;
         }
 
@@ -99,9 +106,17 @@ namespace Js.BrowserChat.Bot
         /// <param name="quote">Stock Quote value</param>
         private static void PostStockQuoteAsBot(IModel channel, string symbol, string quote)
         {
-            var message = new ChatEntry { DatePosted = DateTime.UtcNow, Text = $"{symbol} quote is ${quote} per share", WhoPosted = BotName };
-            channel.BasicPublish(ExchangeName, "bot", null, message.Serialize());
-            Console.WriteLine($"Bot Sent {message.Text}");
+            try
+            {
+                var message = new ChatEntry { DatePosted = DateTime.UtcNow, Text = $"{symbol} quote is ${quote} per share", WhoPosted = BotName };
+                channel.BasicPublish(ExchangeName, "bot", null, message.Serialize());
+                Console.WriteLine($"Bot Sent {message.Text}");
+            }
+            catch (Exception ex)
+            {
+                // Nothing to do here
+                Console.WriteLine($"The bot had an issue posting to the queue: {ex.Message}");
+            }
         }
 
         /// <summary>
