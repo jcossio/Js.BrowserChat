@@ -187,7 +187,7 @@ namespace Js.BrowserChat.Web.Controllers
             if (ModelState.IsValid)
             {
                 // Add the entry to the list!
-                chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = DateTime.Now, Text = model.ChatText, WhoPosted = "JCossio" });
+                chatEntriesQueue.Enqueue(new ChatEntry { DatePosted = DateTime.Now, Text = model.ChatText, WhoPosted = User.Identity.Name });
                 // Add the queue back to the session
                 HttpContext.Session.Set<Queue<ChatEntry>>("ChatEntriesQueue", chatEntriesQueue);
                 // Clear the chat
