@@ -129,10 +129,11 @@ namespace Js.BrowserChat.Bot
             // Say we want to have a fanout exchange
             channel.ExchangeDeclare(ExchangeName, ExchangeType.Fanout, durable: true);
             // Declare a bot queue to see the messages
-            var tempQueue = channel.QueueDeclare(BotQueueName, durable: true, exclusive: false, autoDelete: false);
-            channel.QueueBind(tempQueue.QueueName, ExchangeName, "bot");
+            channel.QueueDeclare(BotQueueName, durable: true, exclusive: false, autoDelete: false);
+            // Bind to our exchange
+            channel.QueueBind(BotQueueName, ExchangeName, "bot");
             _consumer = new QueueingBasicConsumer(channel);
-            return tempQueue.QueueName;
+            return BotQueueName;
         }
     }
 }

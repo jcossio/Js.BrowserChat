@@ -7,7 +7,7 @@
             @foreach (var chatEntry in Model.ChatEntries)
             {
                 <div class="panel panel-default">
-                    <div class="panel-heading"><b>@chatEntry.WhoPosted</b> : @chatEntry.DatePosted</div>
+                    <div class="panel-heading"><b>@chatEntry.WhoPosted</b> : @chatEntry.DatePosted UTC</div>
                     <div class="panel-body">@chatEntry.Text</div>
                 </div>
             }

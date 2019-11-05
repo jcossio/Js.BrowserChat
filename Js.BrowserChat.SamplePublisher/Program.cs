@@ -58,8 +58,9 @@ namespace Js.BrowserChat.SamplePublisher
             // Say we want to have a fanout exchange
             _model.ExchangeDeclare(ExchangeName, ExchangeType.Fanout, durable: true);
             // Declare a temp queue to see the messages
-            var tempQueue = _model.QueueDeclare("Chat_Temp_Queue", durable: true, exclusive: false, autoDelete: false);
-            _model.QueueBind(tempQueue.QueueName, ExchangeName, "chat");
+            _model.QueueDeclare("Chat_Temp_Queue", durable: true, exclusive: false, autoDelete: false);
+            // Bind to our exchange
+            _model.QueueBind("Chat_Temp_Queue", ExchangeName, "chat");
         }
 
         private static void SendMessage(ChatEntry message)
